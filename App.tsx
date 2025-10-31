@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Header } from './components/Header';
 import { SearchBar } from './components/SearchBar';
@@ -13,7 +14,7 @@ const MOVIES_PER_PAGE = 12;
 
 type View = 'home' | 'admin';
 
-// Re-formatted to a single line to prevent any potential parsing issues with newlines/whitespace.
+// Corrected the aliasing syntax to `js_property_name:database_column_name`.
 const SELECT_QUERY = 'id, created_at, contentType:content_type, title, description, posterUrl:poster_url, releaseDate:release_date, quality, genres, downloadSections:download_sections';
 
 const App: React.FC = () => {
@@ -43,7 +44,8 @@ const App: React.FC = () => {
                 console.error('Error fetching content:', error);
                 alert('Could not fetch content. Make sure your Supabase credentials and table are set up correctly, including Row Level Security policies.');
             } else {
-                setContent(data as Content[]);
+                // Cast through `unknown` to resolve TypeScript type inference issue with Supabase aliasing.
+                setContent(data as unknown as Content[]);
             }
         } catch (error) {
             console.error('An unexpected error occurred:', error);
@@ -127,7 +129,8 @@ const App: React.FC = () => {
         }
 
         if (data) {
-            setContent(prevContent => [data[0] as Content, ...prevContent]);
+            // Cast through `unknown` to resolve TypeScript type inference issue with Supabase aliasing.
+            setContent(prevContent => [data[0] as unknown as Content, ...prevContent]);
         }
     } catch (error) {
         console.error('An unexpected error occurred:', error);
@@ -159,7 +162,8 @@ const App: React.FC = () => {
         }
 
         if (data) {
-            setContent(content.map(m => (m.id === updatedContent.id ? data[0] as Content : m)));
+            // Cast through `unknown` to resolve TypeScript type inference issue with Supabase aliasing.
+            setContent(content.map(m => (m.id === updatedContent.id ? data[0] as unknown as Content : m)));
         }
     } catch (error) {
         console.error('An unexpected error occurred:', error);
