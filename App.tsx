@@ -1,4 +1,5 @@
 
+
 import React, { useState, useEffect } from 'react';
 import { Header } from './components/Header';
 import { SearchBar } from './components/SearchBar';
@@ -8,14 +9,11 @@ import { MovieModal } from './components/MovieModal';
 import { Pagination } from './components/Pagination';
 import { AdminDashboard } from './components/AdminDashboard';
 import { Content } from './types';
-import { supabase } from './lib/supabaseClient';
+import { CONTENT } from './constants';
 
 const MOVIES_PER_PAGE = 12;
 
 type View = 'home' | 'admin';
-
-// Corrected the aliasing syntax to `js_property_name:database_column_name`.
-const SELECT_QUERY = 'id, created_at, contentType:content_type, title, description, posterUrl:poster_url, releaseDate:release_date, quality, genres, downloadSections:download_sections';
 
 const App: React.FC = () => {
   const [content, setContent] = useState<Content[]>([]);
@@ -32,29 +30,18 @@ const App: React.FC = () => {
   const [currentView, setCurrentView] = useState<View>('home');
 
   useEffect(() => {
-    const fetchContent = async () => {
-        setLoading(true);
-        try {
-            const { data, error } = await supabase
-                .from('content')
-                .select(SELECT_QUERY)
-                .order('created_at', { ascending: false });
-
-            if (error) {
-                console.error('Error fetching content:', error);
-                alert('Could not fetch content. Make sure your Supabase credentials and table are set up correctly, including Row Level Security policies.');
-            } else {
-                // Cast through `unknown` to resolve TypeScript type inference issue with Supabase aliasing.
-                setContent(data as unknown as Content[]);
-            }
-        } catch (error) {
-            console.error('An unexpected error occurred:', error);
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    fetchContent();
+    setLoading(true);
+    // Simulate fetching data from a local constant
+    setTimeout(() => {
+        // Sort by created_at date to show newest first
+        const sortedContent = [...CONTENT].sort((a, b) => {
+            const dateA = a.created_at ? new Date(a.created_at).getTime() : 0;
+            const dateB = b.created_at ? new Date(b.created_at).getTime() : 0;
+            return dateB - dateA;
+        });
+        setContent(sortedContent);
+        setLoading(false);
+    }, 500); // Simulate a short loading time
   }, []);
 
   useEffect(() => {
@@ -106,90 +93,22 @@ const App: React.FC = () => {
     setSelectedContent(null);
   };
 
-  const handleAddContent = async (newContentData: Omit<Content, 'id' | 'created_at'>) => {
-    try {
-        // Convert camelCase to snake_case for Supabase insert
-        const { contentType, posterUrl, releaseDate, downloadSections, ...rest } = newContentData;
-        const insertData = {
-            ...rest,
-            content_type: contentType,
-            poster_url: posterUrl,
-            release_date: releaseDate,
-            download_sections: downloadSections,
-        };
-        const { data, error } = await supabase
-            .from('content')
-            .insert([insertData])
-            .select(SELECT_QUERY);
-
-        if (error) {
-            console.error('Error adding content:', error);
-            alert('Failed to add content. Check console for details.');
-            return;
-        }
-
-        if (data) {
-            // Cast through `unknown` to resolve TypeScript type inference issue with Supabase aliasing.
-            setContent(prevContent => [data[0] as unknown as Content, ...prevContent]);
-        }
-    } catch (error) {
-        console.error('An unexpected error occurred:', error);
-        alert('An unexpected error occurred while adding content.');
-    }
+  const handleAddContent = (newContentData: Omit<Content, 'id' | 'created_at'>) => {
+    const newContent: Content = {
+        ...newContentData,
+        id: Date.now(), // Use timestamp for a simple unique ID
+        created_at: new Date().toISOString(),
+    };
+    setContent(prevContent => [newContent, ...prevContent]);
   };
 
-  const handleUpdateContent = async (updatedContent: Content) => {
-    try {
-        // Convert camelCase to snake_case for Supabase update
-        const { id, created_at, contentType, posterUrl, releaseDate, downloadSections, ...rest } = updatedContent;
-        const updateData = {
-            ...rest,
-            content_type: contentType,
-            poster_url: posterUrl,
-            release_date: releaseDate,
-            download_sections: downloadSections,
-        };
-        const { data, error } = await supabase
-            .from('content')
-            .update(updateData)
-            .eq('id', id)
-            .select(SELECT_QUERY);
-
-        if (error) {
-            console.error('Error updating content:', error);
-            alert('Failed to update content. Check console for details.');
-            return;
-        }
-
-        if (data) {
-            // Cast through `unknown` to resolve TypeScript type inference issue with Supabase aliasing.
-            setContent(content.map(m => (m.id === updatedContent.id ? data[0] as unknown as Content : m)));
-        }
-    } catch (error) {
-        console.error('An unexpected error occurred:', error);
-        alert('An unexpected error occurred while updating content.');
-    }
+  const handleUpdateContent = (updatedContent: Content) => {
+     setContent(content.map(m => (m.id === updatedContent.id ? updatedContent : m)));
   };
 
-  const handleDeleteContent = async (contentId: number) => {
+  const handleDeleteContent = (contentId: number) => {
     if (window.confirm('Are you sure you want to delete this item?')) {
-        try {
-            const { error } = await supabase
-                .from('content')
-                .delete()
-                .eq('id', contentId);
-
-            if (error) {
-                console.error('Error deleting content:', error);
-                alert('Failed to delete content. Check console for details.');
-                return;
-            }
-
-            setContent(content.filter(m => m.id !== contentId));
-        } catch (error) {
-            console.error('An unexpected error occurred:', error);
-            alert('An unexpected error occurred while deleting content.');
-        }
+        setContent(content.filter(m => m.id !== contentId));
     }
   };
   
@@ -245,7 +164,7 @@ const App: React.FC = () => {
 
                 <div className="lg:col-span-3">
                    {loading ? (
-                    <div className="text-center text-xl text-gray-400 mt-16">Loading content from the database...</div>
+                    <div className="text-center text-xl text-gray-400 mt-16">Loading content...</div>
                   ) : (
                     <>
                       <MovieGrid movies={currentContent} onMovieSelect={handleContentSelect} />
