@@ -13,18 +13,8 @@ const MOVIES_PER_PAGE = 12;
 
 type View = 'home' | 'admin';
 
-const SELECT_QUERY = `
-    id,
-    created_at,
-    contentType:content_type,
-    title,
-    description,
-    posterUrl:poster_url,
-    releaseDate:release_date,
-    quality,
-    genres,
-    downloadSections:download_sections
-`;
+// Re-formatted to a single line to prevent any potential parsing issues with newlines/whitespace.
+const SELECT_QUERY = 'id, created_at, contentType:content_type, title, description, posterUrl:poster_url, releaseDate:release_date, quality, genres, downloadSections:download_sections';
 
 const App: React.FC = () => {
   const [content, setContent] = useState<Content[]>([]);
@@ -51,7 +41,7 @@ const App: React.FC = () => {
 
             if (error) {
                 console.error('Error fetching content:', error);
-                alert('Could not fetch content. Make sure your Supabase credentials and table are set up correctly.');
+                alert('Could not fetch content. Make sure your Supabase credentials and table are set up correctly, including Row Level Security policies.');
             } else {
                 setContent(data as Content[]);
             }
@@ -116,9 +106,18 @@ const App: React.FC = () => {
 
   const handleAddContent = async (newContentData: Omit<Content, 'id' | 'created_at'>) => {
     try {
+        // Convert camelCase to snake_case for Supabase insert
+        const { contentType, posterUrl, releaseDate, downloadSections, ...rest } = newContentData;
+        const insertData = {
+            ...rest,
+            content_type: contentType,
+            poster_url: posterUrl,
+            release_date: releaseDate,
+            download_sections: downloadSections,
+        };
         const { data, error } = await supabase
             .from('content')
-            .insert([newContentData])
+            .insert([insertData])
             .select(SELECT_QUERY);
 
         if (error) {
@@ -138,7 +137,15 @@ const App: React.FC = () => {
 
   const handleUpdateContent = async (updatedContent: Content) => {
     try {
-        const { id, created_at, ...updateData } = updatedContent;
+        // Convert camelCase to snake_case for Supabase update
+        const { id, created_at, contentType, posterUrl, releaseDate, downloadSections, ...rest } = updatedContent;
+        const updateData = {
+            ...rest,
+            content_type: contentType,
+            poster_url: posterUrl,
+            release_date: releaseDate,
+            download_sections: downloadSections,
+        };
         const { data, error } = await supabase
             .from('content')
             .update(updateData)
