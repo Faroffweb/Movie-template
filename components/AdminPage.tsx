@@ -1,16 +1,16 @@
-import React, { useState } from 'react';
-import { Movie, DownloadSection, DownloadLink } from '../types';
+import React, { useState, useEffect } from 'react';
+import { Content, DownloadSection, DownloadLink } from '../types';
 import { PlusIcon, TrashIcon } from './icons';
 
 interface AdminPageProps {
-  onAddMovie: (movie: Omit<Movie, 'id'>) => void;
+  contentToEdit?: Content | null;
+  onSave: (content: Omit<Content, 'id' | 'created_at'> | Content) => void;
   onCancel: () => void;
 }
 
 const InputField: React.FC<{ label: string; id: string; value: string; onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => void; type?: string; required?: boolean; as?: 'textarea' | 'select'; children?: React.ReactNode; }> = 
 ({ label, id, as = 'input', ...props }) => {
   const commonClasses = "w-full bg-[#2a2a2a] border border-gray-600 text-white rounded-md px-4 py-3 focus:outline-none focus:ring-2 focus:ring-yellow-500 transition-shadow";
-  // Fix: Use React.createElement for dynamic tag rendering to avoid TypeScript errors with JSX.
   const Component = as === 'textarea' ? 'textarea' : as === 'select' ? 'select' : 'input';
   return (
     <div>
@@ -20,15 +20,18 @@ const InputField: React.FC<{ label: string; id: string; value: string; onChange:
   );
 };
 
-const SmallButton: React.FC<{ onClick: () => void; children: React.ReactNode; className?: string; ariaLabel: string; }> = ({ onClick, children, className = '', ariaLabel }) => (
-  <button type="button" onClick={onClick} className={`flex items-center space-x-2 px-3 py-1 text-sm rounded-md transition-colors ${className}`} aria-label={ariaLabel}>
+const SmallButton: React.FC<{ onClick: () => void; children: React.ReactNode; className?: string; ariaLabel: string; type?: 'button' | 'submit' | 'reset'; disabled?: boolean; }> = ({ onClick, children, className = '', ariaLabel, type = 'button', disabled = false }) => (
+  <button type={type} onClick={onClick} className={`flex items-center space-x-2 px-3 py-1 text-sm rounded-md transition-colors ${className}`} aria-label={ariaLabel} disabled={disabled}>
     {children}
   </button>
 );
 
 
-export const AdminPage: React.FC<AdminPageProps> = ({ onAddMovie, onCancel }) => {
+export const AdminPage: React.FC<AdminPageProps> = ({ contentToEdit, onSave, onCancel }) => {
+  const isEditMode = !!contentToEdit;
+  
   const [title, setTitle] = useState('');
+  const [contentType, setContentType] = useState<'Movie' | 'Web Series'>('Movie');
   const [description, setDescription] = useState('');
   const [posterUrl, setPosterUrl] = useState('');
   const [releaseDate, setReleaseDate] = useState('');
@@ -36,6 +39,30 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onAddMovie, onCancel }) =>
   const [genres, setGenres] = useState('');
   const [downloadSections, setDownloadSections] = useState<DownloadSection[]>([]);
   
+  useEffect(() => {
+    if (isEditMode && contentToEdit) {
+      setTitle(contentToEdit.title);
+      setContentType(contentToEdit.contentType)
+      setDescription(contentToEdit.description);
+      setPosterUrl(contentToEdit.posterUrl);
+      setReleaseDate(contentToEdit.releaseDate);
+      setQuality(contentToEdit.quality);
+      setGenres(contentToEdit.genres.join(', '));
+      setDownloadSections(contentToEdit.downloadSections || []);
+    } else {
+        // Reset form for "add" mode
+        setTitle('');
+        setContentType('Movie');
+        setDescription('');
+        setPosterUrl('');
+        setReleaseDate('');
+        setQuality('WEB-DL');
+        setGenres('');
+        setDownloadSections([]);
+    }
+  }, [contentToEdit, isEditMode]);
+
+
   const handleAddSection = () => {
     setDownloadSections([...downloadSections, { title: '', links: [] }]);
   };
@@ -67,12 +94,12 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onAddMovie, onCancel }) =>
     (newSections[sectionIndex].links[linkIndex] as any)[field] = value;
     setDownloadSections(newSections);
   };
-  
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    const newMovie: Omit<Movie, 'id'> = {
+    const contentData = {
       title,
+      contentType,
       description,
       posterUrl,
       releaseDate,
@@ -80,22 +107,34 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onAddMovie, onCancel }) =>
       genres: genres.split(',').map(g => g.trim()).filter(g => g),
       downloadSections: downloadSections.length > 0 ? downloadSections : undefined,
     };
-    onAddMovie(newMovie);
+
+    if (isEditMode && contentToEdit) {
+      onSave({ ...contentToEdit, ...contentData });
+    } else {
+      onSave(contentData);
+    }
   };
 
   const downloadLinkTypes: DownloadLink['type'][] = ['G-Direct [Instant]', 'V-Cloud [Resumable]', 'Batch/Zip', 'GDTot [G-Drive]'];
 
   return (
     <div className="bg-[#1a1a1a] p-6 sm:p-8 rounded-lg shadow-lg border border-gray-700 max-w-4xl mx-auto animate-fade-in-scale">
-      <h2 className="text-2xl sm:text-3xl font-bold text-white mb-6">Add New Movie</h2>
+      <h2 className="text-2xl sm:text-3xl font-bold text-white mb-6">{isEditMode ? 'Edit Content' : 'Add New Content'}</h2>
+      
       <form onSubmit={handleSubmit} className="space-y-6">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <InputField label="Title" id="title" value={title} onChange={e => setTitle(e.target.value)} required />
             <InputField label="Poster URL" id="posterUrl" value={posterUrl} onChange={e => setPosterUrl(e.target.value)} required />
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <InputField label="Release Date" id="releaseDate" value={releaseDate} onChange={e => setReleaseDate(e.target.value)} required type="text" />
             <InputField as="select" label="Quality" id="quality" value={quality} onChange={e => setQuality(e.target.value as any)} required>
                 <option value="WEB-DL">WEB-DL</option>
                 <option value="Blu-Ray">Blu-Ray</option>
+            </InputField>
+            <InputField as="select" label="Content Type" id="contentType" value={contentType} onChange={e => setContentType(e.target.value as any)} required>
+                <option value="Movie">Movie</option>
+                <option value="Web Series">Web Series</option>
             </InputField>
         </div>
         <InputField label="Genres (comma-separated)" id="genres" value={genres} onChange={e => setGenres(e.target.value)} required />
@@ -155,7 +194,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onAddMovie, onCancel }) =>
             Cancel
           </button>
           <button type="submit" className="bg-yellow-500 text-black font-bold px-6 py-3 rounded-md hover:bg-yellow-600 transition-colors">
-            Add Movie
+             {isEditMode ? 'Update Content' : 'Add Content'}
           </button>
         </div>
       </form>

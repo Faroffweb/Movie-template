@@ -1,11 +1,11 @@
 
 import React, { useState, useEffect } from 'react';
-import { Movie } from '../types';
+import { Content } from '../types';
 import { XIcon } from './icons';
 import { DownloadLinks } from './DownloadLinks';
 
 interface MovieModalProps {
-  movie: Movie | null;
+  movie: Content | null;
   onClose: () => void;
 }
 

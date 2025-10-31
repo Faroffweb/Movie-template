@@ -1,4 +1,3 @@
-
 export interface DownloadLink {
   provider: string;
   url: string;
@@ -12,8 +11,10 @@ export interface DownloadSection {
 }
 
 
-export interface Movie {
+export interface Content {
   id: number;
+  created_at?: string;
+  contentType: 'Movie' | 'Web Series';
   title: string;
   description: string;
   posterUrl: string;

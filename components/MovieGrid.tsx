@@ -1,15 +1,15 @@
 import React from 'react';
-import { Movie } from '../types';
+import { Content } from '../types';
 import { MovieCard } from './MovieCard';
 
 interface MovieGridProps {
-  movies: Movie[];
-  onMovieSelect: (movie: Movie) => void;
+  movies: Content[];
+  onMovieSelect: (movie: Content) => void;
 }
 
 export const MovieGrid: React.FC<MovieGridProps> = ({ movies, onMovieSelect }) => {
   if (movies.length === 0) {
-    return <p className="text-center text-gray-400 text-lg">No movies found. Try a different search.</p>;
+    return <p className="text-center text-gray-400 text-lg">No content found. Try a different search.</p>;
   }
   
   return (

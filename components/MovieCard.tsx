@@ -1,11 +1,11 @@
 
 import React from 'react';
-import { Movie } from '../types';
+import { Content } from '../types';
 import { StarIcon } from './icons';
 
 interface MovieCardProps {
-  movie: Movie;
-  onCardClick: (movie: Movie) => void;
+  movie: Content;
+  onCardClick: (movie: Content) => void;
 }
 
 export const MovieCard: React.FC<MovieCardProps> = ({ movie, onCardClick }) => {
